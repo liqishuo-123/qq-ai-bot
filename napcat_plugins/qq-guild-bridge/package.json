@@ -1,0 +1,8 @@
+{
+  "name": "qq-guild-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.mjs",
+  "description": "Local NapCat action bridge for QQ guild channel messages"
+}

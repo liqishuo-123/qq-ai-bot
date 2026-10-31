@@ -1,0 +1,2576 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>大肥鱼控制台</title>
+  <style>
+    :root {
+      --bg: #0e1214;
+      --panel: #171d21;
+      --panel-2: #1d252a;
+      --line: #2b363d;
+      --text: #e8eef2;
+      --muted: #8d9aa3;
+      --accent: #f0c24b;
+      --ok: #4ade80;
+      --bad: #f87171;
+      --shadow: 0 16px 40px rgba(0, 0, 0, .28);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(900px 500px at 10% -10%, rgba(240, 194, 75, .08), transparent 60%),
+        radial-gradient(700px 400px at 100% 0%, rgba(74, 222, 128, .05), transparent 55%),
+        var(--bg);
+      font: 14px/1.6 "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    }
+    button, input, select, textarea { font: inherit; }
+    button {
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 9px;
+      padding: 7px 12px;
+      transition: .15s ease;
+    }
+    button:hover { border-color: #4b5b65; background: #243038; }
+    button:disabled { opacity: .5; cursor: wait; }
+    button.primary { background: var(--accent); color: #1b1608; border-color: var(--accent); font-weight: 700; }
+    button.primary:hover { background: #ffd76a; }
+    button.danger { color: #ffb4b4; border-color: #5a2a2a; }
+    input, select, textarea {
+      color: var(--text);
+      background: #101619;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 9px 11px;
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    .hidden { display: none !important; }
+    .muted { color: var(--muted); }
+    .ok { color: var(--ok); }
+    .bad { color: var(--bad); }
+
+    .login {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .login-card {
+      width: min(440px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+    }
+    .login-card h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: 1px; }
+    .login-card p { margin: 0 0 18px; color: var(--muted); }
+    .login-card code { color: var(--accent); }
+    .login-card input { width: 100%; margin-bottom: 10px; }
+    .login-card button { width: 100%; }
+    .error { min-height: 22px; margin: 10px 0 0 !important; color: var(--bad) !important; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px clamp(16px, 4vw, 44px);
+      border-bottom: 1px solid var(--line);
+      background: rgba(14, 18, 20, .82);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .fish { font-size: 30px; }
+    .brand h1 { margin: 0; font-size: 20px; letter-spacing: .5px; }
+    .brand p { margin: 0; color: var(--muted); font-size: 12px; }
+    .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .actions .muted { font-size: 12px; }
+
+    main { max-width: 1180px; margin: 0 auto; padding: 24px clamp(16px, 4vw, 44px) 48px; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .panel {
+      margin-top: 18px;
+      padding: 18px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+    .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .panel-head h2 { margin: 0; font-size: 16px; }
+    .panel-head .muted { font-size: 12px; }
+    .card {
+      min-height: 116px;
+      padding: 14px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+    }
+    .card .label { color: var(--muted); font-size: 12px; }
+    .card .value { margin-top: 8px; font-size: 21px; font-weight: 700; letter-spacing: .3px; }
+    .card .sub { margin-top: 4px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+    .hint { color: var(--muted); margin: -4px 0 12px; font-size: 12px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    th { color: var(--muted); font-size: 12px; font-weight: 500; background: #12181b; }
+    tr:last-child td { border-bottom: 0; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+    .badge.on { color: #06210f; background: var(--ok); }
+    .badge.off { color: #2a0b0b; background: var(--bad); }
+    .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    select { padding: 5px 8px; }
+    textarea {
+      width: 100%;
+      min-height: 360px;
+      resize: vertical;
+      line-height: 1.55;
+      font-family: "Cascadia Code", Consolas, "Microsoft YaHei", monospace;
+    }
+    .row { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .chat-log {
+      min-height: 120px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 12px;
+      background: #101619;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .chat-line { display: flex; gap: 8px; margin: 6px 0; }
+    .chat-line .who { flex: 0 0 64px; color: var(--muted); font-size: 12px; padding-top: 2px; }
+    .chat-line .bubble { max-width: 80%; padding: 7px 10px; border-radius: 10px; background: var(--panel-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .chat-line.user .bubble { background: #263a2d; }
+    .chat-line.bot .bubble { background: #2a2416; }
+    .chat-line.error .bubble { color: var(--bad); background: #2a1616; }
+    .chat-form { display: flex; gap: 8px; margin-top: 10px; }
+    .chat-form input { flex: 1; min-width: 0; }
+    .sticker-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .sticker-toolbar input[type="text"] { flex: 1; min-width: 160px; }
+    .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+    .sticker-card { padding: 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; }
+    .sticker-card img { width: 100%; height: 132px; object-fit: contain; background: #0d1214; border-radius: 8px; }
+    .sticker-card .meta { margin: 7px 0; color: var(--muted); font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+    .sticker-card input { width: 100%; margin-top: 6px; }
+    .sticker-card .row-actions { margin-top: 8px; }
+    .foot { margin-top: 20px; color: var(--muted); font-size: 12px; text-align: center; }
+    .empty { color: var(--muted); padding: 18px 12px; text-align: center; }
+    .style-summary { max-width: 320px; overflow-wrap: anywhere; }
+    .style-detail {
+      margin-top: 14px;
+      padding: 14px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .style-preview {
+      margin: 10px 0;
+      padding: 12px;
+      max-height: 300px;
+      overflow: auto;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #101619;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-family: "Cascadia Code", Consolas, "Microsoft YaHei", monospace;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .token-panel { border-color: #4b4024; background: linear-gradient(160deg, #1d1b14, #171d21 55%); }
+    .token-hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; align-items: stretch; margin-bottom: 12px; }
+    .token-main, .token-budget { padding: 16px; border: 1px solid #3a3321; border-radius: 13px; background: rgba(10, 13, 14, .45); }
+    .token-big { margin: 6px 0 2px; font-size: clamp(34px, 6vw, 58px); font-weight: 800; line-height: 1.05; color: var(--accent); letter-spacing: .5px; }
+    .token-budget { display: flex; flex-direction: column; justify-content: center; }
+    .progress { height: 12px; margin: 10px 0 8px; overflow: hidden; border: 1px solid var(--line); border-radius: 999px; background: #0b1012; }
+    .progress span { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--ok), var(--accent)); transition: width .3s ease; }
+    .progress span.bad { background: linear-gradient(90deg, #f59e0b, var(--bad)); }
+    .usage-lower { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; margin-top: 16px; }
+    .usage-days { display: flex; align-items: end; gap: 8px; min-height: 150px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: #101619; }
+    .usage-day { flex: 1; min-width: 0; text-align: center; }
+    .usage-day .bar { height: 92px; display: flex; align-items: end; justify-content: center; }
+    .usage-day .bar span { width: 70%; min-height: 2px; background: var(--accent); border-radius: 4px 4px 0 0; }
+    .usage-day .n { margin-top: 5px; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+    .usage-day .d { color: var(--muted); font-size: 10px; }
+    .usage-sources { padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: #101619; }
+    .usage-source { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(43, 54, 61, .6); font-size: 12px; }
+    .usage-source:last-child { border-bottom: 0; }
+    .social-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .social-card { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel-2); }
+    .profile-card { min-height: 100px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 11px; background: #101619; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .profile-card .nick { color: var(--accent); font-size: 20px; font-weight: 700; }
+    .profile-card .line { margin-top: 6px; color: var(--muted); }
+    .mono { font-family: "Cascadia Code", Consolas, "Microsoft YaHei", monospace; font-size: 12px; }
+    .compact-table table { min-width: 620px; }
+    .compact-table td, .compact-table th { padding: 7px 8px; }
+    .skill-name { color: var(--text); font-weight: 600; }
+    .skill-id { color: var(--muted); font-size: 11px; }
+
+    @media (max-width: 860px) {
+      .token-hero, .usage-lower, .social-grid { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .topbar { align-items: flex-start; flex-direction: column; }
+    }
+    @media (max-width: 520px) {
+      .grid { grid-template-columns: 1fr; }
+      .card { min-height: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="login" class="login">
+    <form id="loginForm" class="login-card">
+      <h1>🐟 大肥鱼控制台</h1>
+      <p>本地管理页面。token 在项目 <code>.env</code> 的 <code>ADMIN_TOKEN</code> 里。</p>
+      <input id="tokenInput" type="password" placeholder="输入 ADMIN_TOKEN" autocomplete="current-password">
+      <button class="primary" type="submit">进入</button>
+      <p id="loginError" class="error"></p>
+    </form>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <div class="brand">
+        <span class="fish">🐟</span>
+        <div>
+          <h1>大肥鱼控制台</h1>
+          <p>本地管理 · 只绑定 127.0.0.1</p>
+        </div>
+      </div>
+      <div class="actions">
+        <span id="clock" class="muted"></span>
+        <button id="refreshBtn" type="button">刷新</button>
+        <button id="restartBtn" class="danger" type="button">重启机器人</button>
+        <button id="logoutBtn" type="button">退出</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="grid" id="statusCards"></section>
+
+      <section class="panel token-panel">
+        <div class="panel-head">
+          <h2>Token 消耗</h2>
+          <span id="usageUpdated" class="muted">按北京时间统计</span>
+        </div>
+        <div class="token-hero">
+          <div class="token-main">
+            <div class="label">今日总消耗</div>
+            <div id="usageHeroToday" class="token-big">—</div>
+            <div id="usageHeroSub" class="muted">今天 00:00 起</div>
+          </div>
+          <div class="token-budget">
+            <div class="row" style="justify-content:space-between;margin-top:0">
+              <span class="muted">今日预算</span>
+              <strong id="usageBudgetText">未设置</strong>
+            </div>
+            <div class="progress"><span id="usageBudgetBar"></span></div>
+            <div id="usageBudgetSub" class="muted"></div>
+          </div>
+        </div>
+        <div class="grid" id="usageCards"></div>
+        <div class="usage-lower">
+          <div>
+            <div class="panel-head"><h2>近 7 天</h2><span class="muted">输入 + 输出</span></div>
+            <div id="usageDays" class="usage-days"></div>
+          </div>
+          <div>
+            <div class="panel-head"><h2>消耗来源</h2><span class="muted">按一次调用统计</span></div>
+            <div id="usageSources" class="usage-sources"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>自主权限</h2>
+          <span id="autonomyMsg" class="muted">控制台 &gt; 大肥鱼 &gt; 其他指令</span>
+        </div>
+        <p class="hint">大肥鱼可以自己判断要不要接群友的活，不必每条都听。这里是否决权最高的地方：关掉“自主判断”后，它只按技能权限执行；选择“探索模式”则全放行自主判断，但仍守法律和五条硬规则；留下的指令会进入普通模式的决策提示词。</p>
+        <div class="sticker-toolbar">
+          <label class="muted"><input id="autonomyEnabled" type="checkbox"> 允许大肥鱼自己判断（关掉=按技能权限执行）</label>
+          <select id="autonomyMode">
+            <option value="normal">普通判断</option>
+            <option value="explore">探索模式（全放行）</option>
+          </select>
+          <button id="autonomySaveBtn" type="button">保存控制台决定</button>
+        </div>
+        <textarea id="autonomyDirective" maxlength="600" rows="3" style="width:100%;box-sizing:border-box;margin-top:10px" placeholder="例如：群友让你改头像、发空间可以先问一句；涉及踢人、改群名一律先拒绝，等我在这里放行。"></textarea>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>探索模式</h2>
+          <span id="exploreMsg" class="muted">只读探测 QQ/NapCat 能力</span>
+        </div>
+        <p class="hint">开启后大肥鱼会进入“自主意识全开”：技能请求不再逐条让模型否决，同时可以主动探测 QQ 的只读能力。探测只调用 get_/查询类接口，不会踢人、发消息、改资料或支付；五条硬规则仍然拦截。开启后可在群里发 /探索 跑。</p>
+        <div class="sticker-toolbar">
+          <label class="muted"><input id="exploreEnabled" type="checkbox"> 开启探索模式</label>
+          <button id="exploreSaveBtn" type="button">保存</button>
+          <button id="exploreRunBtn" type="button">立即探索</button>
+          <span id="exploreCount" class="muted"></span>
+        </div>
+        <div id="exploreList" class="muted" style="white-space:pre-wrap;max-height:300px;overflow:auto;margin-top:10px"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>技能权限</h2>
+          <span id="skillScopeLabel" class="muted">全局默认</span>
+        </div>
+        <p class="hint">默认所有技能对群成员开放，控制台可以随时收紧或按群/私聊覆盖。除法律和五条硬规则外，不再有代码硬下限；留空范围就是全局规则，填群号/QQ 号就是该范围覆盖。</p>
+        <div class="sticker-toolbar">
+          <select id="skillScopeType">
+            <option value="">全局默认</option>
+            <option value="group">群聊覆盖</option>
+            <option value="private">私聊覆盖</option>
+          </select>
+          <input id="skillScopeId" type="text" maxlength="20" placeholder="群号或 QQ 号" disabled>
+          <button id="skillLoadBtn" type="button">加载</button>
+          <button id="skillRoleBtn" type="button">检查机器人群身份</button>
+          <span id="skillMsg" class="muted"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>技能</th><th>风险</th><th>启用</th><th>最低角色</th><th>来源</th><th>操作</th></tr></thead>
+            <tbody id="skillRows"></tbody>
+          </table>
+        </div>
+        <div class="panel-head" style="margin-top:16px"><h2>最近操作</h2><span class="muted">最多 100 条</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>时间</th><th>技能</th><th>范围</th><th>执行人</th><th>对象</th><th>结果</th></tr></thead>
+            <tbody id="skillAuditRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>大脑</h2>
+          <span id="brainStats" class="muted"></span>
+        </div>
+        <p class="hint">这里是大肥鱼长期资料库。聊天只会检索当前范围 + 全局的公开笔记，最多注入 700 字；私密笔记不会自动进上下文。正文同时写在 data/brain/notes/。</p>
+        <div class="sticker-toolbar">
+          <select id="brainScopeType">
+            <option value="">全部范围</option>
+            <option value="global">全局</option>
+            <option value="group">群聊</option>
+            <option value="private">私聊</option>
+          </select>
+          <input id="brainScopeId" type="text" maxlength="20" placeholder="群号或 QQ 号" disabled>
+          <input id="brainQuery" type="text" maxlength="100" placeholder="搜标题、标签或正文">
+          <button id="brainLoadBtn" type="button">查询</button>
+          <button id="brainNewBtn" class="primary" type="button">新建笔记</button>
+          <span id="brainMsg" class="muted"></span>
+        </div>
+        <div id="brainEditor" class="style-detail" hidden>
+          <div class="panel-head"><h2 id="brainEditorTitle">新建笔记</h2><button id="brainCancelBtn" type="button">取消</button></div>
+          <div class="row">
+            <input id="brainTitle" type="text" maxlength="120" placeholder="标题">
+            <input id="brainTags" type="text" maxlength="200" placeholder="标签，逗号分隔">
+            <select id="brainVisibility"><option value="scope">仅当前范围</option><option value="global">进入全局上下文</option><option value="owner">仅主人</option></select>
+          </div>
+          <textarea id="brainContent" style="min-height:220px" placeholder="正文"></textarea>
+          <div class="row"><button id="brainSaveBtn" class="primary" type="button">保存</button><span id="brainEditorMsg" class="muted"></span></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>标题</th><th>范围</th><th>可见</th><th>来源</th><th>更新时间</th><th>操作</th></tr></thead>
+            <tbody id="brainRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>主页与空间</h2>
+          <span id="presenceAuto" class="muted"></span>
+        </div>
+        <p class="hint">主页和空间动态会先本地校验再调用 NapCat。发布前会过滤广告、诈骗、支付、链接和长串数字；自动发布可以稍后在 .env 里开启。</p>
+        <div class="social-grid">
+          <div class="social-card">
+            <div class="panel-head"><h2>QQ 主页</h2><span id="profileUpdated" class="muted"></span></div>
+            <div id="profileCard" class="profile-card"></div>
+            <div class="row">
+              <button id="profileOptimizeBtn" class="primary" type="button">生成并应用</button>
+              <button id="profileApplyBtn" type="button">应用当前</button>
+              <button id="profileEditBtn" type="button">手动编辑</button>
+              <button id="profileRefreshBtn" type="button">刷新</button>
+            </div>
+            <div id="profileEditor" class="style-detail" hidden>
+              <div class="row"><input id="profileNickname" maxlength="16" placeholder="昵称"><input id="profileSignature" maxlength="80" placeholder="签名"></div>
+              <textarea id="profileBio" style="min-height:130px" placeholder="简介"></textarea>
+              <div class="row"><input id="profileTags" maxlength="100" placeholder="标签，逗号分隔"><input id="profileMood" maxlength="60" placeholder="当前状态"></div>
+              <div class="row"><button id="profileSaveBtn" class="primary" type="button">保存并应用</button><span id="profileMsg" class="muted"></span></div>
+            </div>
+            <div class="row">
+              <select id="profileHistory"></select>
+              <button id="profileRestoreBtn" type="button">恢复选中版本</button>
+            </div>
+          </div>
+          <div class="social-card">
+            <div class="panel-head"><h2>QQ 空间</h2><span id="qzoneMsg" class="muted"></span></div>
+            <textarea id="qzoneContent" style="min-height:110px" maxlength="1000" placeholder="留空就自动生成一条；也可以先点生成，再改。"></textarea>
+            <input id="qzoneImages" maxlength="2000" placeholder="图片 URL，逗号分隔（可选，最多 9 张）">
+            <div class="row">
+              <button id="qzoneGenerateBtn" type="button">生成草稿</button>
+              <button id="qzonePostBtn" class="primary" type="button">发布</button>
+              <button id="qzoneLiveBtn" type="button">拉取实时空间</button>
+              <button id="qzoneRefreshBtn" type="button">刷新</button>
+            </div>
+            <div class="table-wrap" style="margin-top:12px">
+              <table style="min-width:0">
+                <thead><tr><th>时间</th><th>内容</th><th>赞/评</th><th>操作</th></tr></thead>
+                <tbody id="qzoneLiveRows"></tbody>
+              </table>
+            </div>
+            <div class="panel-head" style="margin-top:12px"><h2>本地记录</h2></div>
+            <div class="table-wrap">
+              <table style="min-width:0">
+                <thead><tr><th>时间</th><th>内容</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody id="qzoneRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>QQ 频道</h2>
+          <span id="guildStatus" class="muted"></span>
+        </div>
+        <p class="hint">同账号发频道需要 NapCat 插件；NapCat 当前只加载官方白名单插件，插件不可用时自动走 QQ 官方频道机器人。官方机器人需要在开放平台创建，频道里显示的是机器人身份，不是这个 QQ 号。</p>
+        <div class="row">
+          <select id="guildBackend">
+            <option value="auto">自动（优先插件，失败走官方）</option>
+            <option value="plugin">只走同账号插件</option>
+            <option value="official">只走官方机器人</option>
+            <option value="off">关闭</option>
+          </select>
+          <input id="guildId" maxlength="30" placeholder="guild_id">
+          <input id="guildChannelId" maxlength="30" placeholder="channel_id">
+          <button id="guildSaveBtn" class="primary" type="button">保存频道配置</button>
+          <button id="guildRefreshBtn" type="button">刷新状态</button>
+        </div>
+        <div class="row">
+          <input id="guildContent" maxlength="2000" placeholder="要发到频道的内容">
+          <button id="guildSendBtn" class="primary" type="button">发送</button>
+          <button id="guildChannelsBtn" type="button">频道列表</button>
+          <button id="guildHistoryBtn" type="button">最近消息</button>
+        </div>
+        <div id="guildMsg" class="muted"></div>
+        <pre id="guildList" class="chat-log" style="max-height:240px;overflow:auto"></pre>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>测试聊天</h2>
+          <span class="muted">不经过 QQ，直接调人设</span>
+        </div>
+        <p class="hint">在这里发一句话，看看大肥鱼会怎么回。测试也计入 token 消耗。</p>
+        <div id="testLog" class="chat-log"></div>
+        <form id="testForm" class="chat-form">
+          <input id="testInput" type="text" maxlength="2000" placeholder="例如：给我充点 token" autocomplete="off">
+          <button id="testSendBtn" class="primary" type="submit">发送</button>
+        </form>
+        <div class="row"><span id="testMeta" class="muted"></span></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>表情库</h2>
+          <span id="stickerCount" class="muted"></span>
+        </div>
+        <p class="hint">自动收别人发的表情/动画表情；普通照片不会进库。保存时自动打标签，聊天里大肥鱼会低频调用。</p>
+        <div class="sticker-toolbar">
+          <input id="stickerFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+          <input id="stickerTags" type="text" maxlength="200" placeholder="标签，可选，例如：鱼,哭,讨饭">
+          <button id="stickerUploadBtn" class="primary" type="button">上传</button>
+          <span id="stickerMsg" class="muted"></span>
+        </div>
+        <div id="stickerGrid" class="sticker-grid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>群聊控制</h2>
+          <span id="groupCount" class="muted"></span>
+        </div>
+        <p class="hint">只显示已经和机器人有交互的群。智能模式只接 @、叫名字、回复和同人追问。</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>群号</th>
+                <th>状态</th>
+                <th>模式</th>
+                <th>最近回复</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="groupRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>人设</h2>
+          <span class="muted">保存后立即热重载</span>
+        </div>
+        <p class="hint">直接改 YAML。至少保留 id、display_name、identity、traits、style、examples。</p>
+        <textarea id="personaText" spellcheck="false"></textarea>
+        <div class="row">
+          <button id="savePersonaBtn" class="primary" type="button">保存并热重载</button>
+          <span id="personaMsg" class="muted"></span>
+        </div>
+        <div class="row">
+          <select id="personaVersions">
+            <option value="">选择历史版本…</option>
+          </select>
+          <button id="restorePersonaBtn" type="button">恢复选中版本</button>
+          <span id="personaVersionMsg" class="muted"></span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>记忆管理</h2>
+          <span id="memoryCount" class="muted"></span>
+        </div>
+        <p class="hint">最近 100 条长期记忆。删除后不会再出现在上下文里。</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>范围</th>
+                <th>用户</th>
+                <th>内容</th>
+                <th>类型</th>
+                <th>时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="memoryRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>风格学习</h2>
+          <span id="styleCount" class="muted"></span>
+        </div>
+        <p class="hint">观察群里/私聊里其他人的表达方式，定期蒸馏成短画像，只影响语气和节奏，不改核心人设。上传给模型的样本会先过滤敏感信息。达到最小样本数和置信度后才真正注入；手动试学可先预览。</p>
+        <div class="sticker-toolbar">
+          <select id="styleScopeType">
+            <option value="group">群聊</option>
+            <option value="private">私聊</option>
+          </select>
+          <input id="styleScopeId" type="text" maxlength="20" placeholder="群号或 QQ 号">
+          <button id="styleManualLearn" class="primary" type="button">立即学习</button>
+          <span id="styleManualMsg" class="muted">手动学习至少需要 5 条可用样本；自动学习仍按完整阈值。</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>范围</th>
+                <th>摘要</th>
+                <th>样本</th>
+                <th>置信度</th>
+                <th>版本</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="styleRows"></tbody>
+          </table>
+        </div>
+        <div id="styleDetail" class="style-detail" hidden>
+          <div class="panel-head">
+            <h2 id="styleDetailTitle">风格画像</h2>
+            <button id="styleDetailClose" type="button">关闭</button>
+          </div>
+          <pre id="stylePreview" class="style-preview"></pre>
+          <div class="row">
+            <select id="styleVersionSelect"></select>
+            <button id="styleRestoreBtn" type="button">恢复选中版本</button>
+            <span id="styleDetailMsg" class="muted"></span>
+          </div>
+        </div>
+        <div class="row"><span id="styleMsg" class="muted"></span></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>风格进化</h2>
+          <span id="evolutionCount" class="muted"></span>
+        </div>
+        <p class="hint">闭环：学群友说话 → 去 AI 味闸门 → 对方反应打分 → 定期自我批评 → 画像补丁 → 沉淀进大脑。画像补丁只能改语气节奏类字段，身份和安全边界不可触碰；每次演进都可回滚。</p>
+        <div class="row" style="flex-wrap:wrap;gap:12px">
+          <label><input type="checkbox" id="evDeaiEnabled"> 去 AI 味闸门</label>
+          <label><input type="checkbox" id="evRecordOnly"> 只记录不改写</label>
+          <label>轻改写阈值 <input type="number" id="evLight" min="0" max="100" style="width:64px"></label>
+          <label>重改写阈值 <input type="number" id="evHeavy" min="0" max="100" style="width:64px"></label>
+          <label><input type="checkbox" id="evFeedback"> 反馈采集</label>
+          <label><input type="checkbox" id="evSelfreview"> 自我批评</label>
+          <label><input type="checkbox" id="evBrain"> 进化笔记入大脑</label>
+          <button id="evSaveConfigBtn" type="button">保存开关</button>
+          <span id="evConfigMsg" class="muted"></span>
+        </div>
+        <div class="sticker-toolbar">
+          <select id="evScopeType">
+            <option value="group">群聊</option>
+            <option value="private">私聊</option>
+          </select>
+          <input id="evScopeId" type="text" maxlength="20" placeholder="群号或 QQ 号">
+          <button id="evReviewBtn" class="primary" type="button">立即自我批评</button>
+          <button id="evRefreshBtn" type="button">刷新</button>
+          <span id="evReviewMsg" class="muted"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>范围</th>
+                <th>触发</th>
+                <th>版本</th>
+                <th>改动字段</th>
+                <th>互动分 前→后</th>
+                <th>AI 味 前→后</th>
+                <th>诊断</th>
+              </tr>
+            </thead>
+            <tbody id="evolutionRows"></tbody>
+          </table>
+        </div>
+        <div class="table-wrap" style="margin-top:10px">
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>AI 味分</th>
+                <th>命中规则</th>
+                <th>改写</th>
+                <th>字数</th>
+                <th>范围</th>
+              </tr>
+            </thead>
+            <tbody id="deaiRows"></tbody>
+          </table>
+        </div>
+        <div class="row"><span id="evMsg" class="muted"></span></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>功能中心（统一能力表）</h2>
+          <span id="actionCount" class="muted"></span>
+        </div>
+        <p class="hint">NapCat/OneBot 动作 + 空间 + 频道的统一能力表。所有动作走同一套技能权限与审计；这里以主人身份执行，参数是 JSON。空间写操作和频道发送只在这里或明确命令时执行。</p>
+        <div class="sticker-toolbar">
+          <input id="actionQuery" type="text" placeholder="搜动作名 / ID / 说明">
+          <select id="actionExecutor">
+            <option value="">全部执行器</option>
+            <option value="onebot">onebot</option>
+            <option value="qzone">qzone</option>
+            <option value="guild">guild</option>
+          </select>
+          <button id="actionLoadBtn" type="button">搜索</button>
+          <span id="actionMsg" class="muted"></span>
+        </div>
+        <div class="sticker-toolbar">
+          <input id="actionRunId" type="text" placeholder="动作 ID，如 api.get_group_list">
+          <input id="actionRunParams" type="text" placeholder='参数 JSON，如 {"group_id": 123}'>
+          <button id="actionRunBtn" class="primary" type="button">执行</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>名称</th>
+                <th>ID</th>
+                <th>执行器</th>
+                <th>类别</th>
+                <th>风险</th>
+                <th>说明</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="actionRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>最近错误</h2>
+          <span class="muted">最多保留 50 条</span>
+        </div>
+        <p class="hint">这里显示聊天链路最近的异常。NapCat 掉线会在上面的 OneBot 状态里显示。</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>来源</th>
+                <th>错误</th>
+              </tr>
+            </thead>
+            <tbody id="errorRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <p class="foot">控制台只在本机开放 · 不要把 8080 端口映射到公网 · token 存在 .env 的 ADMIN_TOKEN</p>
+    </main>
+  </div>
+
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const TOKEN_KEY = "dafeiyu_admin_token";
+    let token = localStorage.getItem(TOKEN_KEY) || "";
+    let refreshTimer = null;
+    let styleSelection = null;
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function number(value) {
+      return Number(value || 0).toLocaleString("zh-CN");
+    }
+
+    function uptime(seconds) {
+      const s = Math.max(0, Number(seconds || 0));
+      const days = Math.floor(s / 86400);
+      const hours = Math.floor((s % 86400) / 3600);
+      const minutes = Math.floor((s % 3600) / 60);
+      if (days > 0) return `${days} 天 ${hours} 小时`;
+      if (hours > 0) return `${hours} 小时 ${minutes} 分`;
+      return `${minutes} 分钟`;
+    }
+
+    function dateTime(value) {
+      if (!value) return "—";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleString("zh-CN", { hour12: false });
+    }
+
+    function setLogin(message = "") {
+      $("#app").classList.add("hidden");
+      $("#login").classList.remove("hidden");
+      $("#loginError").textContent = message;
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+    }
+
+    function showApp() {
+      $("#login").classList.add("hidden");
+      $("#app").classList.remove("hidden");
+      loadStickers().catch((error) => {
+        $("#stickerMsg").textContent = `表情库加载失败：${error.message}`;
+      });
+      if (!refreshTimer) {
+        refreshTimer = setInterval(() => {
+          if (!$("#app").classList.contains("hidden")) {
+            refresh().catch((error) => {
+              $("#personaMsg").textContent = `刷新失败：${error.message}`;
+            });
+          }
+        }, 30000);
+      }
+    }
+
+    async function api(path, options = {}) {
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["X-Admin-Token"] = token;
+      const response = await fetch(path, { ...options, headers });
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (_) {
+        data = {};
+      }
+      if (response.status === 401) {
+        throw new Error("token 不正确");
+      }
+      if (!response.ok) {
+        throw new Error(data.detail || `请求失败（HTTP ${response.status}）`);
+      }
+      return data;
+    }
+
+    function renderStatus(status) {
+      const bot = status.bot || {};
+      const stats = status.stats || {};
+      const persona = status.persona || {};
+      const model = status.model || {};
+      const connected = Boolean(bot.connected);
+      $("#statusCards").innerHTML = `
+        <div class="card">
+          <div class="label">OneBot 连接</div>
+          <div class="value ${connected ? "ok" : "bad"}">${connected ? "已连接" : "未连接"}</div>
+          <div class="sub">${connected ? escapeHtml(bot.accounts.join(" / ")) : "等待 NapCat 连接"}</div>
+        </div>
+        <div class="card">
+          <div class="label">运行时长</div>
+          <div class="value">${escapeHtml(uptime(bot.uptime_seconds))}</div>
+          <div class="sub">启动于 ${escapeHtml(dateTime(bot.started_at))}</div>
+        </div>
+        <div class="card">
+          <div class="label">当前人设</div>
+          <div class="value">${escapeHtml(persona.display_name || "—")}</div>
+          <div class="sub">${escapeHtml((persona.aliases || []).join(" / ") || "无别名")} · 强度 ${escapeHtml(persona.intensity ?? "—")}</div>
+        </div>
+        <div class="card">
+          <div class="label">模型</div>
+          <div class="value">${escapeHtml(model.name || "—")}</div>
+          <div class="sub">${escapeHtml(model.provider_name || "")}</div>
+          <div class="sub">${escapeHtml(model.base_url || "")}</div>
+        </div>
+        <div class="card">
+          <div class="label">表情库</div>
+          <div class="value">${number((status.stickers || {}).count)}</div>
+          <div class="sub">启用 ${number((status.stickers || {}).enabled)} 张</div>
+        </div>
+        <div class="card">
+          <div class="label">风格画像</div>
+          <div class="value">${number((status.styles || {}).profiles)}</div>
+          <div class="sub">启用 ${number((status.styles || {}).enabled)} 个</div>
+        </div>
+        <div class="card">
+          <div class="label">大脑笔记</div>
+          <div class="value">${number((status.brain || {}).notes)}</div>
+          <div class="sub">${(status.brain || {}).enabled ? "已开启" : "已关闭"} · ${number(((status.brain || {}).db_bytes || 0) / 1024)} KB</div>
+        </div>
+        <div class="card">
+          <div class="label">技能 / 空间</div>
+          <div class="value">${number((status.skills || {}).enabled)} / ${number((status.social || {}).qzone_posts)}</div>
+          <div class="sub">启用技能 / 空间动态</div>
+        </div>
+        <div class="card">
+          <div class="label">消息 / 用户</div>
+          <div class="value">${number(stats.messages)} / ${number(stats.users)}</div>
+          <div class="sub">长期记忆 ${number(stats.memories)} 条</div>
+        </div>
+        <div class="card">
+          <div class="label">群聊</div>
+          <div class="value">${number(stats.active_groups)} / ${number(stats.groups)}</div>
+          <div class="sub">已开启 / 有记录</div>
+        </div>
+        <div class="card">
+          <div class="label">累计调用</div>
+          <div class="value">${number((stats.usage || {}).calls)}</div>
+          <div class="sub">输入 ${number((stats.usage || {}).input_tokens)} · 输出 ${number((stats.usage || {}).output_tokens)}</div>
+        </div>
+        <div class="card">
+          <div class="label">累计 Token</div>
+          <div class="value">${number((stats.usage || {}).total_tokens)}</div>
+          <div class="sub">今日 ${number((stats.usage || {}).today_tokens)}</div>
+        </div>
+      `;
+    }
+
+    function renderUsage(usage, budget, usage7) {
+      const data = usage || {};
+      const week = usage7 || {};
+      const today = week.today || {};
+      const limit = Number((budget || {}).limit || 0);
+      const percent = Number((budget || {}).percent || 0);
+      const budgetValue = limit > 0 ? `${number((budget || {}).used)} / ${number(limit)}` : "未设置";
+      const budgetSub = limit > 0
+        ? `${percent.toFixed(1)}% · ${(budget || {}).exhausted ? "已用完" : "剩余 " + number((budget || {}).remaining)}`
+        : "在 .env 设置 DAILY_TOKEN_BUDGET";
+      $("#usageHeroToday").textContent = number(today.total_tokens);
+      $("#usageHeroSub").textContent = `输入 ${number(today.input_tokens)} · 输出 ${number(today.output_tokens)} · ${number(today.calls)} 次调用`;
+      $("#usageBudgetText").textContent = budgetValue;
+      $("#usageBudgetSub").textContent = budgetSub;
+      const bar = $("#usageBudgetBar");
+      bar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+      bar.className = (budget || {}).exhausted || (budget || {}).warning ? "bad" : "";
+      $("#usageUpdated").textContent = `更新于 ${dateTime(week.generated_at || new Date().toISOString())}`;
+      $("#usageCards").innerHTML = `
+        <div class="card"><div class="label">今日输入</div><div class="value">${number(today.input_tokens)}</div><div class="sub">上下文 + 提示词</div></div>
+        <div class="card"><div class="label">今日输出</div><div class="value">${number(today.output_tokens)}</div><div class="sub">模型实际生成</div></div>
+        <div class="card"><div class="label">今日调用</div><div class="value">${number(today.calls)}</div><div class="sub">聊天 / 测试 / 学习 / 判断</div></div>
+        <div class="card"><div class="label">近 7 天 Token</div><div class="value">${number((week.totals || {}).total_tokens)}</div><div class="sub">${number((week.totals || {}).calls)} 次调用</div></div>
+        <div class="card"><div class="label">累计 Token</div><div class="value">${number(data.total_tokens)}</div><div class="sub">输入 + 输出</div></div>
+        <div class="card"><div class="label">累计输入 / 输出</div><div class="value">${number(data.input_tokens)} / ${number(data.output_tokens)}</div><div class="sub">历史总量</div></div>
+        <div class="card"><div class="label">累计调用</div><div class="value">${number(data.calls)}</div><div class="sub">含控制台测试</div></div>
+        <div class="card"><div class="label">今日预算剩余</div><div class="value ${(budget || {}).exhausted ? "bad" : ""}">${limit > 0 ? number((budget || {}).remaining) : "—"}</div><div class="sub">${limit > 0 ? "预算 " + number(limit) : "未设置日预算"}</div></div>
+      `;
+      const daily = week.daily || [];
+      const max = Math.max(1, ...daily.map((item) => Number(item.input_tokens || 0) + Number(item.output_tokens || 0)));
+      $("#usageDays").innerHTML = daily.map((item) => {
+        const total = Number(item.input_tokens || 0) + Number(item.output_tokens || 0);
+        const height = Math.max(2, Math.round(total / max * 88));
+        return `<div class="usage-day" title="${escapeHtml(item.date)}">
+          <div class="bar"><span style="height:${height}px"></span></div>
+          <div class="n">${number(total)}</div>
+          <div class="d">${escapeHtml(String(item.date || "").slice(5))}</div>
+        </div>`;
+      }).join("") || `<div class="empty">还没有用量记录</div>`;
+      const labels = { group: "群聊", private: "私聊", style: "风格学习", sticker: "表情标注", admin: "控制台测试", autonomy: "自主判断", other: "其他" };
+      const sources = week.by_source || [];
+      const sourceMax = Math.max(1, ...sources.map((item) => Number(item.input_tokens || 0) + Number(item.output_tokens || 0)));
+      $("#usageSources").innerHTML = sources.length ? sources.map((item) => {
+        const total = Number(item.input_tokens || 0) + Number(item.output_tokens || 0);
+        const width = Math.max(2, Math.round(total / sourceMax * 100));
+        return `<div class="usage-source"><span>${escapeHtml(labels[item.source] || item.source)}</span><strong>${number(total)}</strong></div>
+          <div class="progress" style="height:5px;margin:0 0 6px"><span style="width:${width}%"></span></div>`;
+      }).join("") : `<div class="empty">近 7 天没有调用</div>`;
+    }
+
+    async function loadAutonomy() {
+      try {
+        const data = await api("/admin/api/autonomy");
+        $("#autonomyEnabled").checked = Boolean(data.enabled);
+        $("#autonomyMode").value = data.mode || "normal";
+        const field = $("#autonomyDirective");
+        if (document.activeElement !== field) field.value = data.directive || "";
+        const modeText = data.mode === "explore" ? "探索模式全放行" : (data.enabled ? "自主判断开" : "按技能权限执行");
+        $("#autonomyMsg").textContent = `${data.hierarchy.join(" > ")} · ${modeText}`;
+      } catch (error) {
+        $("#autonomyMsg").textContent = `加载失败：${error.message}`;
+      }
+    }
+
+    function renderExplore(data) {
+      const findings = data.findings || [];
+      $("#exploreEnabled").checked = Boolean(data.enabled);
+      $("#exploreCount").textContent = `${findings.length} 条发现 · ${data.enabled ? "运行中" : "未开启"}`;
+      $("#exploreMsg").textContent = data.enabled ? "探索模式：开（只读探测）" : "探索模式：关";
+      $("#exploreList").textContent = findings.slice(0, 12).map((item) => {
+        return `${item.created_at || ""} · ${item.action} · ${item.status} · ${item.summary || ""}`;
+      }).join("\n") || "还没有探测记录。";
+    }
+
+    async function loadExplore() {
+      try {
+        renderExplore(await api("/admin/api/explore"));
+      } catch (error) {
+        $("#exploreMsg").textContent = `加载失败：${error.message}`;
+      }
+    }
+
+    async function saveExplore() {
+      try {
+        await api("/admin/api/explore", {
+          method: "PUT",
+          body: JSON.stringify({ enabled: $("#exploreEnabled").checked }),
+        });
+        await Promise.all([loadExplore(), loadAutonomy()]);
+      } catch (error) {
+        $("#exploreMsg").textContent = `保存失败：${error.message}`;
+      }
+    }
+
+    async function runExplore() {
+      const button = $("#exploreRunBtn");
+      button.disabled = true;
+      $("#exploreMsg").textContent = "正在探测 QQ 能力...";
+      try {
+        const data = await api("/admin/api/explore/run", {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+        $("#exploreMsg").textContent = `本轮完成 ${(data.findings || []).length} 项`;
+        await loadExplore();
+      } catch (error) {
+        $("#exploreMsg").textContent = `探测失败：${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function saveAutonomy() {
+      try {
+        const data = await api("/admin/api/autonomy", {
+          method: "PUT",
+          body: JSON.stringify({
+            enabled: $("#autonomyEnabled").checked,
+            directive: $("#autonomyDirective").value.trim(),
+            mode: $("#autonomyMode").value,
+          }),
+        });
+        const modeText = data.state.mode === "explore" ? "探索模式全放行" : (data.state.enabled ? "自主判断开" : "按技能权限执行");
+        $("#autonomyMsg").textContent = `已保存：${modeText} · ${data.state.updated_at || ""}`;
+        await loadExplore();
+      } catch (error) {
+        $("#autonomyMsg").textContent = `保存失败：${error.message}`;
+      }
+    }
+
+    let skillItems = [];
+    let skillGrants = [];
+    let skillRoles = [];
+    let brainItems = [];
+    let editingBrainId = null;
+    let presenceState = null;
+    let qzoneLive = [];
+
+    function scopeParams(typeId, scopeId, extra = {}) {
+      const params = new URLSearchParams();
+      if (typeId && scopeId) {
+        params.set("scope_type", typeId);
+        params.set("scope_id", scopeId);
+      }
+      for (const [key, value] of Object.entries(extra)) {
+        if (value !== undefined && value !== null && value !== "") params.set(key, value);
+      }
+      return params.toString();
+    }
+
+    async function loadSkills() {
+      const type = $("#skillScopeType").value;
+      const scopeId = $("#skillScopeId").value.trim();
+      try {
+        const data = await api(`/admin/api/skills?${scopeParams(type, scopeId)}`);
+        skillItems = data.items || [];
+        skillGrants = data.grants || [];
+        skillRoles = data.roles || [];
+        renderSkills();
+        await loadSkillAudit();
+        $("#skillMsg").textContent = type && scopeId ? `正在看 ${type}:${scopeId} 的覆盖` : "正在看全局默认";
+      } catch (error) {
+        $("#skillMsg").textContent = `加载失败：${error.message}`;
+      }
+    }
+
+    function renderSkills() {
+      const tbody = $("#skillRows");
+      tbody.replaceChildren();
+      $("#skillScopeLabel").textContent = $("#skillScopeType").value && $("#skillScopeId").value.trim()
+        ? `${$("#skillScopeType").value}:${$("#skillScopeId").value.trim()}`
+        : "全局默认";
+      if (!skillItems.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 6;
+        td.className = "empty";
+        td.textContent = "没有技能。";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+      const roleOptions = (selected) => skillRoles.map((role) =>
+        `<option value="${escapeHtml(role.id)}" ${role.id === selected ? "selected" : ""}>${escapeHtml(role.label)}</option>`
+      ).join("");
+      for (const item of skillItems) {
+        const tr = document.createElement("tr");
+        tr.dataset.skillId = item.id;
+        tr.innerHTML = `
+          <td><div class="skill-name">${escapeHtml(item.name)}</div><div class="skill-id">${escapeHtml(item.id)} · ${escapeHtml(item.category)}</div><div class="muted">${escapeHtml(item.description)}</div></td>
+          <td><span class="badge ${item.risk === "high" ? "off" : "on"}">${escapeHtml(item.risk)}</span></td>
+          <td><input type="checkbox" data-skill-field="enabled" ${item.enabled ? "checked" : ""}></td>
+          <td><select data-skill-field="min_role">${roleOptions(item.min_role)}</select></td>
+          <td>${item.overridden ? "范围覆盖" : "全局"}${item.floor ? `<div class="muted">下限 ${escapeHtml(item.floor)}</div>` : ""}</td>
+          <td><div class="row-actions"><button type="button" data-skill-save="${escapeHtml(item.id)}">保存</button>${item.overridden ? `<button type="button" class="danger" data-skill-clear="${escapeHtml(item.id)}">清除覆盖</button>` : ""}</div></td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function saveSkill(skillId) {
+      const row = document.querySelector(`tr[data-skill-id="${CSS.escape(skillId)}"]`);
+      if (!row) return;
+      const enabled = row.querySelector('[data-skill-field="enabled"]').checked;
+      const minRole = row.querySelector('[data-skill-field="min_role"]').value;
+      const type = $("#skillScopeType").value;
+      const scopeId = $("#skillScopeId").value.trim();
+      try {
+        if (type && scopeId) {
+          await api(`/admin/api/skills/grants/${encodeURIComponent(type)}/${encodeURIComponent(scopeId)}/${encodeURIComponent(skillId)}`, {
+            method: "PUT",
+            body: JSON.stringify({ enabled, min_role: minRole }),
+          });
+        } else {
+          await api(`/admin/api/skills/${encodeURIComponent(skillId)}`, {
+            method: "PATCH",
+            body: JSON.stringify({ enabled, min_role: minRole }),
+          });
+        }
+        $("#skillMsg").textContent = "保存了。";
+        await loadSkills();
+      } catch (error) {
+        $("#skillMsg").textContent = `保存失败：${error.message}`;
+      }
+    }
+
+    async function clearSkillGrant(skillId) {
+      const type = $("#skillScopeType").value;
+      const scopeId = $("#skillScopeId").value.trim();
+      if (!type || !scopeId) return;
+      try {
+        await api(`/admin/api/skills/grants/${encodeURIComponent(type)}/${encodeURIComponent(scopeId)}/${encodeURIComponent(skillId)}`, { method: "DELETE" });
+        $("#skillMsg").textContent = "已清除这个范围的覆盖。";
+        await loadSkills();
+      } catch (error) {
+        $("#skillMsg").textContent = `清除失败：${error.message}`;
+      }
+    }
+
+    async function loadSkillAudit() {
+      try {
+        const data = await api("/admin/api/skills/audit?limit=100");
+        const tbody = $("#skillAuditRows");
+        tbody.replaceChildren();
+        const items = data.items || [];
+        if (!items.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 6;
+          td.className = "empty";
+          td.textContent = "还没有操作记录。";
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          return;
+        }
+        for (const item of items) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="muted">${escapeHtml(dateTime(item.created_at))}</td>
+            <td>${escapeHtml(item.skill_id)}</td>
+            <td>${escapeHtml(item.scope_type)}:${escapeHtml(item.scope_id)}</td>
+            <td>${escapeHtml(item.actor_id || "—")}</td>
+            <td>${escapeHtml(item.target_id || "—")}</td>
+            <td><span class="badge ${item.status === "ok" ? "on" : "off"}">${escapeHtml(item.status)}</span>${item.error ? `<div class="muted">${escapeHtml(item.error)}</div>` : ""}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      } catch (error) {
+        $("#skillMsg").textContent = `审计加载失败：${error.message}`;
+      }
+    }
+
+    async function checkBotRole() {
+      const groupId = $("#skillScopeId").value.trim();
+      if (!groupId) {
+        $("#skillMsg").textContent = "先在上面填群号。";
+        return;
+      }
+      try {
+        const data = await api(`/admin/api/skills/bot-role?group_id=${encodeURIComponent(groupId)}`);
+        $("#skillMsg").textContent = `机器人在 ${groupId} 的身份：${data.role}`;
+      } catch (error) {
+        $("#skillMsg").textContent = `查询失败：${error.message}`;
+      }
+    }
+
+    function brainScope() {
+      const type = $("#brainScopeType").value;
+      const scopeId = $("#brainScopeId").value.trim();
+      return { type, scopeId };
+    }
+
+    async function loadBrain() {
+      const scope = brainScope();
+      try {
+        const params = scopeParams(scope.type, scope.scopeId, { q: $("#brainQuery").value.trim(), limit: "100" });
+        const data = await api(`/admin/api/brain?${params}`);
+        brainItems = data.items || [];
+        const stats = data.stats || {};
+        $("#brainStats").textContent = `笔记 ${number(stats.notes)} · 数据库 ${number(stats.db_bytes)} B · 文件 ${number(stats.files)}`;
+        renderBrains();
+        $("#brainMsg").textContent = `载入 ${brainItems.length} 条`;
+      } catch (error) {
+        $("#brainMsg").textContent = `加载失败：${error.message}`;
+      }
+    }
+
+    function renderBrains() {
+      const tbody = $("#brainRows");
+      tbody.replaceChildren();
+      if (!brainItems.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 7;
+        td.className = "empty";
+        td.textContent = "没有符合条件的笔记。";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+      for (const note of brainItems) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(note.id)}</td>
+          <td><strong>${escapeHtml(note.title)}</strong><div class="muted">${escapeHtml(note.content)}</div></td>
+          <td>${escapeHtml(note.scope_type)}:${escapeHtml(note.scope_id || "—")}</td>
+          <td>${escapeHtml(note.visibility)}</td>
+          <td>${escapeHtml(note.source)}</td>
+          <td class="muted">${escapeHtml(dateTime(note.updated_at))}</td>
+          <td><div class="row-actions"><button type="button" data-brain-edit="${note.id}">编辑</button><button type="button" class="danger" data-brain-delete="${note.id}">删除</button></div></td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function openBrainEditor(note = null) {
+      editingBrainId = note ? note.id : null;
+      $("#brainEditorTitle").textContent = note ? `编辑 #${note.id}` : "新建笔记";
+      $("#brainTitle").value = note ? note.title : "";
+      $("#brainTags").value = note ? note.tags : "";
+      $("#brainContent").value = note ? note.content : "";
+      $("#brainVisibility").value = note ? note.visibility : "scope";
+      $("#brainEditor").hidden = false;
+      $("#brainEditorMsg").textContent = "";
+    }
+
+    async function editBrain(noteId) {
+      try {
+        const data = await api(`/admin/api/brain/${noteId}`);
+        openBrainEditor(data.item);
+      } catch (error) {
+        $("#brainMsg").textContent = `读取失败：${error.message}`;
+      }
+    }
+
+    async function saveBrain() {
+      const title = $("#brainTitle").value.trim();
+      const content = $("#brainContent").value.trim();
+      if (!title || !content) {
+        $("#brainEditorMsg").textContent = "标题和正文都要填。";
+        return;
+      }
+      const visibility = $("#brainVisibility").value;
+      try {
+        if (editingBrainId) {
+          await api(`/admin/api/brain/${editingBrainId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ title, content, tags: $("#brainTags").value.trim(), visibility }),
+          });
+        } else {
+          const scope = brainScope();
+          await api("/admin/api/brain", {
+            method: "POST",
+            body: JSON.stringify({
+              title,
+              content,
+              tags: $("#brainTags").value.trim(),
+              scope_type: scope.type || "global",
+              scope_id: scope.type && scope.type !== "global" ? scope.scopeId : "",
+              visibility,
+            }),
+          });
+        }
+        $("#brainEditor").hidden = true;
+        $("#brainMsg").textContent = "保存了。";
+        await loadBrain();
+      } catch (error) {
+        $("#brainEditorMsg").textContent = `保存失败：${error.message}`;
+      }
+    }
+
+    async function deleteBrain(noteId) {
+      try {
+        await api(`/admin/api/brain/${noteId}`, { method: "DELETE" });
+        $("#brainMsg").textContent = `删了 #${noteId}。`;
+        await loadBrain();
+      } catch (error) {
+        $("#brainMsg").textContent = `删除失败：${error.message}`;
+      }
+    }
+
+    async function loadPresence() {
+      try {
+        const data = await api("/admin/api/presence");
+        presenceState = data;
+        const profile = data.profile;
+        const settings = data.settings || {};
+        $("#presenceAuto").textContent = `自动主页 ${settings.profile_auto_enabled ? "开" : "关"} · 自动空间 ${settings.qzone_auto_enabled ? "开" : "关"}`;
+        $("#profileUpdated").textContent = profile ? `更新于 ${dateTime(profile.updated_at)}` : "还没有资料";
+        $("#profileCard").innerHTML = profile ? `
+          <div class="nick">${escapeHtml(profile.nickname)}</div>
+          <div>${escapeHtml(profile.signature)}</div>
+          <div class="line">${escapeHtml(profile.bio)}</div>
+          <div class="line">${escapeHtml((profile.tags || []).join(" / ") || "无标签")}${profile.mood ? " · " + escapeHtml(profile.mood) : ""}</div>
+        ` : `<div class="muted">还没有生成过主页。点“生成并应用”让模型写一版，或手动编辑。</div>`;
+        const history = data.history || [];
+        $("#profileHistory").innerHTML = history.length
+          ? history.map((item) => `<option value="${escapeHtml(item.version)}">${escapeHtml(item.version)} · ${escapeHtml((item.profile || {}).nickname || "")}</option>`).join("")
+          : `<option value="">暂无历史</option>`;
+        if (profile) {
+          $("#profileNickname").value = profile.nickname || "";
+          $("#profileSignature").value = profile.signature || "";
+          $("#profileBio").value = profile.bio || "";
+          $("#profileTags").value = (profile.tags || []).join(", ");
+          $("#profileMood").value = profile.mood || "";
+        }
+        renderQzone(data.posts || []);
+      } catch (error) {
+        $("#qzoneMsg").textContent = `加载失败：${error.message}`;
+      }
+    }
+
+    function renderQzone(posts) {
+      const tbody = $("#qzoneRows");
+      tbody.replaceChildren();
+      if (!posts.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 4;
+        td.className = "empty";
+        td.textContent = "最近没有动态。";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+      for (const post of posts) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="muted">${escapeHtml(dateTime(post.created_at))}</td>
+          <td>${escapeHtml(post.content)}</td>
+          <td><span class="badge ${post.status === "ok" ? "on" : "off"}">${escapeHtml(post.status)}</span></td>
+          <td><button type="button" class="danger" data-qzone-delete="${escapeHtml(post.tid)}">删除</button></td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function optimizeProfile() {
+      const button = $("#profileOptimizeBtn");
+      button.disabled = true;
+      $("#profileMsg").textContent = "生成中…";
+      try {
+        await api("/admin/api/presence/profile/optimize", { method: "POST" });
+        $("#profileMsg").textContent = "已生成并应用。";
+        await loadPresence();
+      } catch (error) {
+        $("#profileMsg").textContent = `失败：${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function applyProfile() {
+      try {
+        await api("/admin/api/presence/profile/apply", { method: "POST" });
+        $("#profileMsg").textContent = "已应用到 QQ。";
+        await loadPresence();
+      } catch (error) {
+        $("#profileMsg").textContent = `失败：${error.message}`;
+      }
+    }
+
+    async function saveProfile() {
+      try {
+        await api("/admin/api/presence/profile/draft", {
+          method: "POST",
+          body: JSON.stringify({
+            nickname: $("#profileNickname").value.trim(),
+            signature: $("#profileSignature").value.trim(),
+            bio: $("#profileBio").value.trim(),
+            tags: $("#profileTags").value.trim(),
+            mood: $("#profileMood").value.trim(),
+            apply: true,
+          }),
+        });
+        $("#profileMsg").textContent = "保存并应用了。";
+        $("#profileEditor").hidden = true;
+        await loadPresence();
+      } catch (error) {
+        $("#profileMsg").textContent = `失败：${error.message}`;
+      }
+    }
+
+    async function restoreProfile() {
+      const version = $("#profileHistory").value;
+      if (!version) return;
+      try {
+        await api("/admin/api/presence/profile/restore", {
+          method: "POST",
+          body: JSON.stringify({ version }),
+        });
+        $("#profileMsg").textContent = "恢复并应用了。";
+        await loadPresence();
+      } catch (error) {
+        $("#profileMsg").textContent = `失败：${error.message}`;
+      }
+    }
+
+    async function generateQzone() {
+      try {
+        const data = await api("/admin/api/presence/qzone/generate", { method: "POST" });
+        $("#qzoneContent").value = data.content || "";
+        $("#qzoneMsg").textContent = "草稿生成了，改完再发。";
+      } catch (error) {
+        $("#qzoneMsg").textContent = `生成失败：${error.message}`;
+      }
+    }
+
+    async function postQzone() {
+      const button = $("#qzonePostBtn");
+      button.disabled = true;
+      try {
+        const images = $("#qzoneImages").value
+          .split(/[,，\n]/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+        const data = await api("/admin/api/presence/qzone/post", {
+          method: "POST",
+          body: JSON.stringify({ content: $("#qzoneContent").value.trim(), images }),
+        });
+        $("#qzoneMsg").textContent = `发了，tid=${data.item.tid}`;
+        $("#qzoneContent").value = "";
+        $("#qzoneImages").value = "";
+        await loadPresence();
+        await loadQzoneLive();
+      } catch (error) {
+        $("#qzoneMsg").textContent = `发布失败：${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function deleteQzone(tid) {
+      try {
+        await api(`/admin/api/presence/qzone/${encodeURIComponent(tid)}`, { method: "DELETE" });
+        $("#qzoneMsg").textContent = "删了。";
+        await loadPresence();
+      } catch (error) {
+        $("#qzoneMsg").textContent = `删除失败：${error.message}`;
+      }
+    }
+
+    async function loadQzoneLive() {
+      $("#qzoneMsg").textContent = "拉取实时空间…";
+      try {
+        const data = await api("/admin/api/qzone?limit=10");
+        qzoneLive = data.items || [];
+        renderQzoneLive(qzoneLive);
+        $("#qzoneMsg").textContent = `实时空间 ${qzoneLive.length} 条`;
+      } catch (error) {
+        $("#qzoneMsg").textContent = `空间读取失败：${error.message}`;
+      }
+    }
+
+    function renderQzoneLive(posts) {
+      const tbody = $("#qzoneLiveRows");
+      tbody.replaceChildren();
+      if (!posts.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 4;
+        td.className = "empty";
+        td.textContent = "没拉到动态。";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+      for (const post of posts) {
+        const tr = document.createElement("tr");
+        const comments = post.comments || [];
+        const commentText = comments.length
+          ? comments.slice(0, 2).map((item) => `${item.nickname || item.uin}: ${item.content}`).join(" / ")
+          : "暂无评论";
+        tr.innerHTML = `
+          <td class="muted">${escapeHtml(dateTime(post.created_at))}</td>
+          <td>${escapeHtml(post.content || "")}<div class="muted">${escapeHtml(commentText)}</div></td>
+          <td>${Number(post.like_count || 0)} / ${comments.length}</td>
+          <td>
+            <div class="row-actions">
+              <button type="button" data-qzone-like="${escapeHtml(post.tid)}" data-qzone-unikey="${escapeHtml(post.unikey || "")}">${post.liked ? "取消赞" : "点赞"}</button>
+              <button type="button" data-qzone-comment="${escapeHtml(post.tid)}">评论</button>
+              ${comments.slice(0, 1).map((item) => `<button type="button" class="danger" data-qzone-comment-delete="${escapeHtml(post.tid)}" data-qzone-comment-id="${escapeHtml(item.comment_id)}">删评论</button>`).join("")}
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function likeQzone(tid, unikey) {
+      const post = qzoneLive.find((item) => item.tid === tid);
+      try {
+        await api("/admin/api/qzone/like", {
+          method: "POST",
+          body: JSON.stringify({ tid, unikey, active: !(post && post.liked) }),
+        });
+        await loadQzoneLive();
+      } catch (error) {
+        $("#qzoneMsg").textContent = `点赞失败：${error.message}`;
+      }
+    }
+
+    async function commentQzone(tid) {
+      const content = prompt("评论内容");
+      if (!content || !content.trim()) return;
+      try {
+        await api("/admin/api/qzone/comment", {
+          method: "POST",
+          body: JSON.stringify({ tid, content: content.trim() }),
+        });
+        $("#qzoneMsg").textContent = "评论了。";
+        await loadQzoneLive();
+      } catch (error) {
+        $("#qzoneMsg").textContent = `评论失败：${error.message}`;
+      }
+    }
+
+    async function deleteQzoneComment(tid, commentId) {
+      try {
+        await api("/admin/api/qzone/comment/delete", {
+          method: "POST",
+          body: JSON.stringify({ tid, comment_id: commentId }),
+        });
+        $("#qzoneMsg").textContent = "评论删了。";
+        await loadQzoneLive();
+      } catch (error) {
+        $("#qzoneMsg").textContent = `删评论失败：${error.message}`;
+      }
+    }
+
+    async function loadGuild(check = false) {
+      try {
+        const data = check
+          ? await api("/admin/api/guild/check", { method: "POST" })
+          : await api("/admin/api/guild");
+        $("#guildBackend").value = data.backend || "auto";
+        $("#guildId").value = data.guild_id || "";
+        $("#guildChannelId").value = data.channel_id || "";
+        const backend = { auto: "自动", plugin: "同账号插件", official: "官方机器人", off: "关闭" }[data.backend] || data.backend;
+        const pluginText = data.plugin_checked === false ? "待检查" : (data.plugin_available ? "可用" : "不可用");
+        $("#guildStatus").textContent = `后端 ${backend} · 插件 ${pluginText} · 官方 ${data.official_configured ? "已配置" : "未配置"}`;
+        if (data.last_error) $("#guildMsg").textContent = data.last_error;
+      } catch (error) {
+        $("#guildStatus").textContent = `频道状态失败：${error.message}`;
+      }
+    }
+
+    async function saveGuild() {
+      try {
+        await api("/admin/api/guild/config", {
+          method: "PUT",
+          body: JSON.stringify({
+            backend: $("#guildBackend").value,
+            guild_id: $("#guildId").value.trim(),
+            channel_id: $("#guildChannelId").value.trim(),
+          }),
+        });
+        $("#guildMsg").textContent = "频道配置保存了。";
+        await loadGuild();
+      } catch (error) {
+        $("#guildMsg").textContent = `保存失败：${error.message}`;
+      }
+    }
+
+    async function sendGuild() {
+      const content = $("#guildContent").value.trim();
+      if (!content) {
+        $("#guildMsg").textContent = "先写内容。";
+        return;
+      }
+      const button = $("#guildSendBtn");
+      button.disabled = true;
+      try {
+        const data = await api("/admin/api/guild/send", {
+          method: "POST",
+          body: JSON.stringify({ content, channel_id: $("#guildChannelId").value.trim() }),
+        });
+        $("#guildMsg").textContent = `发出去了（${data.item.backend}）${data.item.message_id ? " · " + data.item.message_id : ""}`;
+        $("#guildContent").value = "";
+      } catch (error) {
+        $("#guildMsg").textContent = `发送失败：${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function loadGuildChannels() {
+      try {
+        const data = await api("/admin/api/guild/channels");
+        const lines = [];
+        for (const guild of data.guilds || []) {
+          lines.push(`频道：${guild.name || guild.id || ""} (${guild.id || ""})`);
+        }
+        for (const channel of data.channels || []) {
+          lines.push(`${channel.name || "未命名"} · channel_id=${channel.id || channel.channel_id || ""}`);
+        }
+        $("#guildList").textContent = lines.length ? lines.join("\n") : "没有频道。";
+        $("#guildMsg").textContent = `后端 ${data.backend || ""}`;
+      } catch (error) {
+        $("#guildMsg").textContent = `列表失败：${error.message}`;
+      }
+    }
+
+    async function loadGuildHistory() {
+      try {
+        const data = await api(`/admin/api/guild/messages?limit=20`);
+        const lines = (data.messages || []).map((item) => {
+          const author = item.author || {};
+          return `${author.username || item.author_id || ""}: ${item.content || ""}`;
+        });
+        $("#guildList").textContent = lines.length ? lines.join("\n") : "没有消息。";
+        $("#guildMsg").textContent = `后端 ${data.backend || ""}`;
+      } catch (error) {
+        $("#guildMsg").textContent = `历史失败：${error.message}`;
+      }
+    }
+
+    async function groupAction(groupId, payload, button) {
+      if (button) button.disabled = true;
+      try {
+        await api(`/admin/api/groups/${groupId}`, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        await refresh();
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        if (button) button.disabled = false;
+      }
+    }
+
+    async function resetGroup(groupId, button) {
+      if (!confirm(`确定清空群 ${groupId} 的上下文？`)) return;
+      if (button) button.disabled = true;
+      try {
+        await api(`/admin/api/groups/${groupId}/reset`, { method: "POST" });
+        await refresh();
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        if (button) button.disabled = false;
+      }
+    }
+
+    function renderGroups(groups) {
+      const tbody = $("#groupRows");
+      tbody.replaceChildren();
+      $("#groupCount").textContent = `${groups.length} 个群`;
+      if (!groups.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 5;
+        td.className = "empty";
+        td.textContent = "还没有群聊记录。把机器人拉进群并 @ 一次后，这里就会出现。";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+      for (const group of groups) {
+        const tr = document.createElement("tr");
+
+        const idCell = document.createElement("td");
+        idCell.textContent = group.group_id;
+        tr.appendChild(idCell);
+
+        const stateCell = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = `badge ${group.active ? "on" : "off"}`;
+        badge.textContent = group.active ? "已开启" : "已关闭";
+        stateCell.appendChild(badge);
+        tr.appendChild(stateCell);
+
+        const modeCell = document.createElement("td");
+        const select = document.createElement("select");
+        for (const value of ["smart", "full"]) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value === "smart" ? "智能" : "全量";
+          option.selected = group.mode === value;
+          select.appendChild(option);
+        }
+        select.addEventListener("change", () => groupAction(group.group_id, { mode: select.value }, select));
+        modeCell.appendChild(select);
+        tr.appendChild(modeCell);
+
+        const lastCell = document.createElement("td");
+        lastCell.textContent = dateTime(group.last_bot_reply_at);
+        lastCell.className = "muted";
+        tr.appendChild(lastCell);
+
+        const actionsCell = document.createElement("td");
+        const actions = document.createElement("div");
+        actions.className = "row-actions";
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.textContent = group.active ? "关闭" : "开启";
+        toggle.addEventListener("click", () => groupAction(group.group_id, { active: !group.active }, toggle));
+        const reset = document.createElement("button");
+        reset.type = "button";
+        reset.className = "danger";
+        reset.textContent = "重置上下文";
+        reset.addEventListener("click", () => resetGroup(group.group_id, reset));
+        actions.append(toggle, reset);
+        actionsCell.appendChild(actions);
+        tr.appendChild(actionsCell);
+
+        tbody.appendChild(tr);
+      }
+    }
+
+    function appendTestLine(role, text) {
+      const log = $("#testLog");
+      const line = document.createElement("div");
+      line.className = `chat-line ${role}`;
+      const who = document.createElement("div");
+      who.className = "who";
+      who.textContent = role === "user" ? "你" : role === "bot" ? "大肥鱼" : "系统";
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = text;
+      line.append(who, bubble);
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    async function sendTest(event) {
+      event.preventDefault();
+      const input = $("#testInput");
+      const button = $("#testSendBtn");
+      const message = input.value.trim();
+      if (!message) return;
+      appendTestLine("user", message);
+      input.value = "";
+      button.disabled = true;
+      $("#testMeta").textContent = "生成中…";
+      try {
+        const result = await api("/admin/api/test-chat", {
+          method: "POST",
+          body: JSON.stringify({ message }),
+        });
+        appendTestLine("bot", result.reply || "（空）");
+        $("#testMeta").textContent = `${number(result.latency_ms)} ms · ${number(result.output_tokens)} 输出 token`;
+      } catch (error) {
+        appendTestLine("error", error.message);
+        $("#testMeta").textContent = "";
+      } finally {
+        button.disabled = false;
+        input.focus();
+      }
+    }
+
+    function renderMemories(items) {
+      const tbody = $("#memoryRows");
+      tbody.replaceChildren();
+      $("#memoryCount").textContent = `${items.length} 条`;
+      if (!items.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 6;
+        td.className = "empty";
+        td.textContent = "还没有长期记忆。";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+      for (const item of items) {
+        const tr = document.createElement("tr");
+        const scope = document.createElement("td");
+        scope.textContent = item.scope_type === "private" ? "私聊" : item.scope_type === "group" ? "群聊" : item.scope_type;
+        const user = document.createElement("td");
+        user.textContent = item.user_id || "—";
+        const content = document.createElement("td");
+        content.textContent = item.content;
+        const category = document.createElement("td");
+        category.textContent = item.category || "—";
+        const created = document.createElement("td");
+        created.className = "muted";
+        created.textContent = dateTime(item.created_at);
+        const actions = document.createElement("td");
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "danger";
+        remove.textContent = "删除";
+        remove.addEventListener("click", () => deleteMemory(item.id, remove));
+        actions.appendChild(remove);
+        tr.append(scope, user, content, category, created, actions);
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function deleteMemory(id, button) {
+      if (!confirm(`确定删除记忆 #${id}？`)) return;
+      button.disabled = true;
+      try {
+        await api(`/admin/api/memories/${id}`, { method: "DELETE" });
+        await refresh();
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    function styleScopeLabel(item) {
+      return item.scope_type === "private" ? `私聊 ${item.scope_id}` : `群 ${item.scope_id}`;
+    }
+
+    function renderStyles(items) {
+      const tbody = $("#styleRows");
+      tbody.replaceChildren();
+      $("#styleCount").textContent = `${items.length} 个画像`;
+      if (!items.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 7;
+        td.className = "empty";
+        td.textContent = "还没有风格画像。观察够一定数量的消息后会自动生成。";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+      for (const item of items) {
+        const tr = document.createElement("tr");
+        const scope = document.createElement("td");
+        scope.textContent = styleScopeLabel(item);
+        const summary = document.createElement("td");
+        summary.className = "style-summary";
+        summary.textContent = item.summary || "（暂无摘要）";
+        const samples = document.createElement("td");
+        samples.textContent = number(item.sample_count);
+        const confidence = document.createElement("td");
+        confidence.textContent = Number(item.confidence || 0).toFixed(2);
+        const version = document.createElement("td");
+        version.textContent = number(item.version);
+        const status = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = `badge ${item.enabled ? "on" : "off"}`;
+        badge.textContent = item.enabled ? "启用" : "停用";
+        status.appendChild(badge);
+        const actions = document.createElement("td");
+        const actionsBox = document.createElement("div");
+        actionsBox.className = "row-actions";
+        const preview = document.createElement("button");
+        preview.type = "button";
+        preview.textContent = "预览";
+        preview.addEventListener("click", () => showStyleDetail(item));
+        const learn = document.createElement("button");
+        learn.type = "button";
+        learn.textContent = "立即学习";
+        learn.addEventListener("click", () => styleAction(
+          `/admin/api/styles/${item.scope_type}/${item.scope_id}/learn`,
+          { method: "POST" },
+          "学习任务已完成，已更新画像。",
+        ));
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.textContent = item.enabled ? "停用" : "启用";
+        toggle.addEventListener("click", () => styleAction(
+          `/admin/api/styles/${item.scope_type}/${item.scope_id}`,
+          { method: "PATCH", body: JSON.stringify({ enabled: !item.enabled }) },
+          item.enabled ? "已停用这个画像。" : "已启用这个画像。",
+        ));
+        const reset = document.createElement("button");
+        reset.type = "button";
+        reset.className = "danger";
+        reset.textContent = "重置";
+        reset.addEventListener("click", () => {
+          if (!confirm(`确定删除 ${styleScopeLabel(item)} 的风格画像和历史版本？`)) return;
+          styleAction(
+            `/admin/api/styles/${item.scope_type}/${item.scope_id}`,
+            { method: "DELETE" },
+            "已删除风格画像。",
+          );
+        });
+        actionsBox.append(preview, learn, toggle, reset);
+        actions.appendChild(actionsBox);
+        tr.append(scope, summary, samples, confidence, version, status, actions);
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function manualStyleLearn() {
+      const scopeType = $("#styleScopeType").value;
+      const scopeId = $("#styleScopeId").value.trim();
+      const status = $("#styleManualMsg");
+      if (!/^\d{5,20}$/.test(scopeId)) {
+        status.textContent = "群号或 QQ 号格式不对。";
+        return;
+      }
+      status.textContent = "学习中…";
+      try {
+        const result = await api(`/admin/api/styles/${scopeType}/${scopeId}/learn`, { method: "POST" });
+        status.textContent = `已生成/更新画像，当前 v${result.version}，样本 ${number(result.sample_count)} 条。`;
+        await refresh();
+      } catch (error) {
+        status.textContent = `学习失败：${error.message}`;
+      }
+    }
+
+    async function styleAction(url, options, message) {
+      const status = $("#styleMsg");
+      status.textContent = "处理中…";
+      try {
+        await api(url, options);
+        status.textContent = message;
+        await refresh();
+      } catch (error) {
+        status.textContent = `操作失败：${error.message}`;
+      }
+    }
+
+    async function showStyleDetail(item) {
+      styleSelection = item;
+      $("#styleDetail").hidden = false;
+      $("#styleDetailTitle").textContent = `风格画像 · ${styleScopeLabel(item)}`;
+      $("#stylePreview").textContent = JSON.stringify(item.profile || {}, null, 2);
+      $("#styleDetailMsg").textContent = "";
+      const select = $("#styleVersionSelect");
+      select.replaceChildren();
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "选择历史版本…";
+      select.appendChild(placeholder);
+      try {
+        const data = await api(`/admin/api/styles/${item.scope_type}/${item.scope_id}/versions`);
+        for (const version of data.versions || []) {
+          const option = document.createElement("option");
+          option.value = String(version.version);
+          option.textContent = `v${version.version} · ${dateTime(version.created_at)}`;
+          select.appendChild(option);
+        }
+        $("#styleDetailMsg").textContent = `当前 v${item.version}，共 ${Math.max(0, (data.versions || []).length)} 个历史版本。`;
+      } catch (error) {
+        $("#styleDetailMsg").textContent = `历史版本读取失败：${error.message}`;
+      }
+    }
+
+    async function restoreStyleVersion() {
+      if (!styleSelection) return;
+      const version = Number($("#styleVersionSelect").value);
+      if (!version) {
+        $("#styleDetailMsg").textContent = "先选择一个历史版本。";
+        return;
+      }
+      $("#styleDetailMsg").textContent = "恢复中…";
+      try {
+        await api(
+          `/admin/api/styles/${styleSelection.scope_type}/${styleSelection.scope_id}/versions/${version}/restore`,
+          { method: "POST" },
+        );
+        $("#styleDetailMsg").textContent = `已恢复 v${version}。`;
+        await refresh();
+      } catch (error) {
+        $("#styleDetailMsg").textContent = `恢复失败：${error.message}`;
+      }
+    }
+
+    function renderErrors(items) {
+      const tbody = $("#errorRows");
+      tbody.replaceChildren();
+      if (!items.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 3;
+        td.className = "empty";
+        td.textContent = "没有记录到错误。";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+      for (const item of items) {
+        const tr = document.createElement("tr");
+        const time = document.createElement("td");
+        time.className = "muted";
+        time.textContent = dateTime(item.time);
+        const source = document.createElement("td");
+        source.textContent = item.source || "—";
+        const message = document.createElement("td");
+        message.textContent = item.message || "";
+        tr.append(time, source, message);
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function restartBot() {
+      if (!confirm("确定重启机器人？QQ 连接会短暂断开，页面稍后自动刷新。")) return;
+      const button = $("#restartBtn");
+      button.disabled = true;
+      try {
+        await api("/admin/api/restart", { method: "POST" });
+        alert("已发送重启指令，页面将在几秒后刷新。");
+        setTimeout(() => location.reload(), 5000);
+      } catch (error) {
+        alert(error.message);
+        button.disabled = false;
+      }
+    }
+
+    function renderPersonaVersions(versions) {
+      const select = $("#personaVersions");
+      const selected = select.value;
+      select.replaceChildren();
+      const first = document.createElement("option");
+      first.value = "";
+      first.textContent = "选择历史版本…";
+      select.appendChild(first);
+      for (const version of versions) {
+        const option = document.createElement("option");
+        option.value = version.name;
+        option.textContent = `${version.name} · ${number(version.size)} B`;
+        select.appendChild(option);
+      }
+      if (versions.some((version) => version.name === selected)) {
+        select.value = selected;
+      }
+    }
+
+    async function restorePersona() {
+      const select = $("#personaVersions");
+      const name = select.value;
+      const message = $("#personaVersionMsg");
+      if (!name) {
+        message.textContent = "先选一个历史版本。";
+        return;
+      }
+      if (!confirm(`恢复人设版本 ${name}？当前版本会先自动备份。`)) return;
+      message.textContent = "恢复中…";
+      try {
+        await api(`/admin/api/persona/restore/${encodeURIComponent(name)}`, { method: "POST" });
+        message.textContent = "已恢复并热重载。";
+        await refresh();
+      } catch (error) {
+        message.textContent = `恢复失败：${error.message}`;
+      }
+    }
+
+    async function savePersona() {
+      const button = $("#savePersonaBtn");
+      const message = $("#personaMsg");
+      button.disabled = true;
+      message.textContent = "保存中…";
+      try {
+        await api("/admin/api/persona", {
+          method: "PUT",
+          body: JSON.stringify({ content: $("#personaText").value }),
+        });
+        message.textContent = "已保存，人设已热重载。";
+        await refresh();
+      } catch (error) {
+        message.textContent = `保存失败：${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    let stickerObjectUrls = [];
+
+    async function loadStickerImage(img) {
+      const id = img.dataset.id;
+      if (!id) return;
+      try {
+        const response = await fetch(`/admin/api/stickers/${id}/image`, {
+          headers: token ? { "X-Admin-Token": token } : {},
+        });
+        if (!response.ok) throw new Error("图片加载失败");
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        stickerObjectUrls.push(url);
+        img.src = url;
+      } catch (error) {
+        img.alt = "图片加载失败";
+      }
+    }
+
+    function renderStickers(items) {
+      for (const url of stickerObjectUrls) URL.revokeObjectURL(url);
+      stickerObjectUrls = [];
+      const grid = $("#stickerGrid");
+      if (!items.length) {
+        grid.innerHTML = '<div class="empty">库还是空的。在群里发一张表情，或者从上面上传。</div>';
+        $("#stickerCount").textContent = "0 张";
+        return;
+      }
+      grid.innerHTML = items.map((item) => `
+        <div class="sticker-card" data-id="${item.id}" data-enabled="${item.enabled ? "1" : "0"}">
+          <img data-id="${item.id}" alt="表情 ${item.id}">
+          <div class="meta">
+            #${item.id} · ${item.enabled ? "启用" : "停用"}<br>
+            ${escapeHtml(item.source_nickname || item.source_scope_type || "上传")} · 使用 ${number(item.use_count)} 次<br>
+            ${escapeHtml(dateTime(item.created_at))}
+          </div>
+          <input data-field="tags" type="text" maxlength="200" placeholder="标签" value="${escapeHtml(item.tags)}">
+          <input data-field="description" type="text" maxlength="200" placeholder="描述" value="${escapeHtml(item.description)}">
+          <div class="row-actions">
+            <button data-action="save" type="button">保存</button>
+            <button data-action="toggle" type="button">${item.enabled ? "停用" : "启用"}</button>
+            <button data-action="delete" class="danger" type="button">删除</button>
+          </div>
+        </div>
+      `).join("");
+      $("#stickerCount").textContent = `${items.length} 张`;
+      for (const img of grid.querySelectorAll("img")) loadStickerImage(img);
+    }
+
+    async function loadStickers() {
+      if (!token) return;
+      try {
+        const data = await api("/admin/api/stickers?limit=100");
+        renderStickers(data.items || []);
+      } catch (error) {
+        $("#stickerMsg").textContent = `表情库加载失败：${error.message}`;
+      }
+    }
+
+    async function uploadSticker() {
+      const input = $("#stickerFile");
+      const file = input.files && input.files[0];
+      if (!file) {
+        $("#stickerMsg").textContent = "先选一张图片。";
+        return;
+      }
+      const button = $("#stickerUploadBtn");
+      button.disabled = true;
+      $("#stickerMsg").textContent = "上传中…";
+      try {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = () => reject(new Error("读取文件失败"));
+          reader.readAsDataURL(file);
+        });
+        const result = await api("/admin/api/stickers", {
+          method: "POST",
+          body: JSON.stringify({
+            filename: file.name,
+            data: dataUrl,
+            tags: $("#stickerTags").value.trim(),
+          }),
+        });
+        $("#stickerMsg").textContent = result.created
+          ? ($("#stickerTags").value.trim() ? "已入库。" : "已入库，标签生成中。")
+          : "这张已经在库里了。";
+        input.value = "";
+        $("#stickerTags").value = "";
+        await loadStickers();
+      } catch (error) {
+        $("#stickerMsg").textContent = `上传失败：${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function handleStickerAction(event) {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+      const card = button.closest(".sticker-card");
+      if (!card) return;
+      const stickerId = card.dataset.id;
+      const action = button.dataset.action;
+      const tags = card.querySelector('[data-field="tags"]').value.trim();
+      const description = card.querySelector('[data-field="description"]').value.trim();
+      try {
+        if (action === "save") {
+          await api(`/admin/api/stickers/${stickerId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ tags, description }),
+          });
+          $("#stickerMsg").textContent = "已保存。";
+        } else if (action === "toggle") {
+          const enabled = card.dataset.enabled !== "1";
+          await api(`/admin/api/stickers/${stickerId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ enabled }),
+          });
+          $("#stickerMsg").textContent = enabled ? "已启用。" : "已停用。";
+        } else if (action === "delete") {
+          if (!confirm(`删除表情 #${stickerId}？`)) return;
+          await api(`/admin/api/stickers/${stickerId}`, { method: "DELETE" });
+          $("#stickerMsg").textContent = "已删除。";
+        }
+        await loadStickers();
+      } catch (error) {
+        $("#stickerMsg").textContent = `操作失败：${error.message}`;
+      }
+    }
+
+    async function refresh() {
+      const status = await api("/admin/api/status");
+      const persona = await api("/admin/api/persona");
+      const memories = await api("/admin/api/memories?limit=100");
+      const styles = await api("/admin/api/styles?limit=100");
+      const versions = await api("/admin/api/persona/versions");
+      const errors = await api("/admin/api/errors");
+      renderStatus(status);
+      renderUsage((status.stats || {}).usage, status.budget || {}, status.usage_7d || {});
+      renderGroups(status.groups || []);
+      renderMemories(memories.items || []);
+      renderStyles(styles.items || []);
+      renderPersonaVersions(versions.versions || []);
+      renderErrors(errors.items || []);
+      await loadAutonomy();
+      await loadExplore();
+      await loadSkills();
+      await loadBrain();
+      await loadPresence();
+      await loadGuild();
+      const textarea = $("#personaText");
+      if (document.activeElement !== textarea) {
+        textarea.value = persona.content || "";
+      }
+    }
+
+    async function login(event) {
+      if (event) event.preventDefault();
+      token = $("#tokenInput").value.trim();
+      if (!token) {
+        $("#loginError").textContent = "先输入 token。";
+        return;
+      }
+      try {
+        await refresh();
+        localStorage.setItem(TOKEN_KEY, token);
+        $("#loginError").textContent = "";
+        showApp();
+      } catch (error) {
+        setLogin(error.message);
+      }
+    }
+
+    function logout() {
+      token = "";
+      localStorage.removeItem(TOKEN_KEY);
+      setLogin("");
+      $("#tokenInput").value = "";
+    }
+
+    function tickClock() {
+      $("#clock").textContent = new Date().toLocaleString("zh-CN", { hour12: false });
+    }
+
+    async function loadActions() {
+      const query = ($("#actionQuery").value || "").trim().toLowerCase();
+      const executor = $("#actionExecutor").value;
+      try {
+        const data = await api("/admin/api/actions");
+        let items = data.actions || [];
+        if (executor) items = items.filter((item) => item.executor === executor);
+        if (query) {
+          items = items.filter((item) =>
+            [item.id, item.name, item.description, item.category]
+              .join(" ")
+              .toLowerCase()
+              .includes(query),
+          );
+        }
+        $("#actionCount").textContent = `${items.length} / ${data.total} 项`;
+        const tbody = $("#actionRows");
+        tbody.replaceChildren();
+        for (const item of items.slice(0, 120)) {
+          const tr = document.createElement("tr");
+          const cells = [item.name, item.id, item.executor, item.category, item.risk, item.description];
+          cells.forEach((value, index) => {
+            const td = document.createElement("td");
+            if (index === 5) td.className = "muted";
+            td.textContent = String(value ?? "—");
+            tr.appendChild(td);
+          });
+          const op = document.createElement("td");
+          const fill = document.createElement("button");
+          fill.type = "button";
+          fill.textContent = item.readonly ? "填参数" : "执行";
+          fill.addEventListener("click", () => {
+            $("#actionRunId").value = item.id;
+            $("#actionRunParams").value = item.executor === "guild" ? '{"channel_id": "", "content": ""}' : "{}";
+            $("#actionRunId").focus();
+          });
+          op.appendChild(fill);
+          tr.appendChild(op);
+          tbody.appendChild(tr);
+        }
+        if (!items.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 7;
+          td.className = "empty";
+          td.textContent = "没有匹配的能力。";
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+        }
+      } catch (error) {
+        $("#actionMsg").textContent = `加载失败：${error.message}`;
+      }
+    }
+
+    async function runAction() {
+      const skillId = ($("#actionRunId").value || "").trim();
+      if (!skillId) {
+        $("#actionMsg").textContent = "先填动作 ID。";
+        return;
+      }
+      let params = {};
+      const raw = ($("#actionRunParams").value || "").trim();
+      if (raw) {
+        try {
+          params = JSON.parse(raw);
+        } catch (_) {
+          $("#actionMsg").textContent = "参数不是合法 JSON。";
+          return;
+        }
+      }
+      $("#actionMsg").textContent = "执行中……";
+      try {
+        const data = await api(`/admin/api/actions/${encodeURIComponent(skillId)}/run`, {
+          method: "POST",
+          body: JSON.stringify({ params }),
+        });
+        const result = data.result;
+        const preview = typeof result === "string" ? result : JSON.stringify(result);
+        $("#actionMsg").textContent = `成功：${String(preview).slice(0, 120)}`;
+      } catch (error) {
+        $("#actionMsg").textContent = `失败：${error.message}`;
+      }
+    }
+
+    function renderEvolution(evolution, config) {
+      const tbody = $("#evolutionRows");
+      tbody.replaceChildren();
+      $("#evolutionCount").textContent = `${evolution.length} 次演进`;
+      for (const item of evolution) {
+        const tr = document.createElement("tr");
+        const cells = [
+          item.ts,
+          `${item.scope_type}:${item.scope_id}`,
+          item.trigger,
+          `v${item.from_version} → v${item.to_version}`,
+          (item.fields_changed || []).join("、") || "—",
+          `${item.feedback_before} → ${item.feedback_after}`,
+          `${item.deai_before} → ${item.deai_after}`,
+          item.diagnosis || "—",
+        ];
+        cells.forEach((value, index) => {
+          const td = document.createElement("td");
+          if (index === 7) {
+            td.className = "muted";
+            td.style.maxWidth = "260px";
+          }
+          td.textContent = String(value ?? "—");
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      }
+      if (!evolution.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 8;
+        td.className = "empty";
+        td.textContent = "还没有风格演进记录。攒够回复后自动触发，或点“立即自我批评”。";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      }
+      if (config) {
+        $("#evDeaiEnabled").checked = Boolean(config.deai_enabled);
+        $("#evRecordOnly").checked = Boolean(config.deai_record_only);
+        $("#evLight").value = config.deai_light_threshold ?? 20;
+        $("#evHeavy").value = config.deai_heavy_threshold ?? 50;
+        $("#evFeedback").checked = Boolean(config.feedback_enabled);
+        $("#evSelfreview").checked = Boolean(config.selfreview_enabled);
+        $("#evBrain").checked = Boolean(config.style_evolution_brain);
+      }
+    }
+
+    async function loadStyleEvolution() {
+      try {
+        const data = await api("/admin/api/style/evolution");
+        renderEvolution(data.evolution || [], data.config);
+        const deai = await api("/admin/api/style/deai?limit=30");
+        const tbody = $("#deaiRows");
+        tbody.replaceChildren();
+        for (const item of deai.logs || []) {
+          const tr = document.createElement("tr");
+          const cells = [
+            item.ts,
+            item.score,
+            (item.hit_rules || []).join("、"),
+            item.rewritten ? (item.rewritten === 2 ? "重写" : "轻写") : "原文",
+            item.reply_chars,
+            `${item.scope_type}:${item.scope_id}`,
+          ];
+          cells.forEach((value, index) => {
+            const td = document.createElement("td");
+            if (index === 2) td.className = "muted";
+            td.textContent = String(value ?? "—");
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        }
+        if (!(deai.logs || []).length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 6;
+          td.className = "empty";
+          td.textContent = "近 7 天没有 AI 味命中记录。";
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+        }
+        $("#evMsg").textContent = `近 7 天：反馈 ${deai.stats.count} 条检测 / 均分 ${deai.stats.avg_score}`;
+      } catch (error) {
+        $("#evMsg").textContent = `加载失败：${error.message}`;
+      }
+    }
+
+    async function saveStyleConfig() {
+      try {
+        await api("/admin/api/style/config", {
+          method: "PUT",
+          body: JSON.stringify({
+            deai_enabled: $("#evDeaiEnabled").checked,
+            deai_record_only: $("#evRecordOnly").checked,
+            deai_light_threshold: Number($("#evLight").value) || 0,
+            deai_heavy_threshold: Number($("#evHeavy").value) || 0,
+            feedback_enabled: $("#evFeedback").checked,
+            selfreview_enabled: $("#evSelfreview").checked,
+            style_evolution_brain: $("#evBrain").checked,
+          }),
+        });
+        $("#evConfigMsg").textContent = "已保存（只影响当前运行，重启后按 .env）。";
+      } catch (error) {
+        $("#evConfigMsg").textContent = `保存失败：${error.message}`;
+      }
+    }
+
+    async function runSelfReview() {
+      const scopeType = $("#evScopeType").value;
+      const scopeId = ($("#evScopeId").value || "").trim();
+      if (!scopeId) {
+        $("#evReviewMsg").textContent = "先填群号或 QQ 号。";
+        return;
+      }
+      $("#evReviewMsg").textContent = "自我批评中……";
+      try {
+        const data = await api("/admin/api/style/review", {
+          method: "POST",
+          body: JSON.stringify({ scope_type: scopeType, scope_id: scopeId }),
+        });
+        const review = data.review || {};
+        const fields = (review.fields_changed || []).join("、");
+        $("#evReviewMsg").textContent = review.applied
+          ? `已应用：v${review.version_before} → v${review.version_after}${fields ? `（${fields}）` : ""}`
+          : `未应用：${review.note || review.diagnosis || "见诊断"}`;
+        await loadStyleEvolution();
+      } catch (error) {
+        $("#evReviewMsg").textContent = `失败：${error.message}`;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      $("#loginForm").addEventListener("submit", login);
+      $("#refreshBtn").addEventListener("click", () => {
+        Promise.all([refresh(), loadStickers()]).catch((error) => alert(error.message));
+      });
+      $("#logoutBtn").addEventListener("click", logout);
+      $("#stickerUploadBtn").addEventListener("click", uploadSticker);
+      $("#stickerGrid").addEventListener("click", handleStickerAction);
+      $("#savePersonaBtn").addEventListener("click", savePersona);
+      $("#restorePersonaBtn").addEventListener("click", restorePersona);
+      $("#styleDetailClose").addEventListener("click", () => { $("#styleDetail").hidden = true; });
+      $("#styleRestoreBtn").addEventListener("click", restoreStyleVersion);
+      $("#styleManualLearn").addEventListener("click", manualStyleLearn);
+      $("#autonomySaveBtn").addEventListener("click", saveAutonomy);
+      $("#exploreSaveBtn").addEventListener("click", saveExplore);
+      $("#exploreRunBtn").addEventListener("click", runExplore);
+      $("#skillScopeType").addEventListener("change", () => {
+        const scoped = Boolean($("#skillScopeType").value);
+        $("#skillScopeId").disabled = !scoped;
+        loadSkills();
+      });
+      $("#skillScopeId").addEventListener("change", loadSkills);
+      $("#skillLoadBtn").addEventListener("click", loadSkills);
+      $("#skillRoleBtn").addEventListener("click", checkBotRole);
+      $("#skillRows").addEventListener("click", (event) => {
+        const save = event.target.closest("[data-skill-save]");
+        if (save) { saveSkill(save.dataset.skillSave); return; }
+        const clear = event.target.closest("[data-skill-clear]");
+        if (clear) clearSkillGrant(clear.dataset.skillClear);
+      });
+      $("#brainScopeType").addEventListener("change", () => {
+        const type = $("#brainScopeType").value;
+        $("#brainScopeId").disabled = !type || type === "global";
+        loadBrain();
+      });
+      $("#brainLoadBtn").addEventListener("click", loadBrain);
+      $("#brainQuery").addEventListener("keydown", (event) => { if (event.key === "Enter") loadBrain(); });
+      $("#brainNewBtn").addEventListener("click", () => openBrainEditor(null));
+      $("#brainCancelBtn").addEventListener("click", () => { $("#brainEditor").hidden = true; });
+      $("#brainSaveBtn").addEventListener("click", saveBrain);
+      $("#brainRows").addEventListener("click", (event) => {
+        const edit = event.target.closest("[data-brain-edit]");
+        if (edit) { editBrain(edit.dataset.brainEdit); return; }
+        const del = event.target.closest("[data-brain-delete]");
+        if (del) deleteBrain(del.dataset.brainDelete);
+      });
+      $("#profileOptimizeBtn").addEventListener("click", optimizeProfile);
+      $("#profileApplyBtn").addEventListener("click", applyProfile);
+      $("#profileEditBtn").addEventListener("click", () => { $("#profileEditor").hidden = false; });
+      $("#profileRefreshBtn").addEventListener("click", loadPresence);
+      $("#profileSaveBtn").addEventListener("click", saveProfile);
+      $("#profileRestoreBtn").addEventListener("click", restoreProfile);
+      $("#qzoneGenerateBtn").addEventListener("click", generateQzone);
+      $("#qzonePostBtn").addEventListener("click", postQzone);
+      $("#qzoneLiveBtn").addEventListener("click", loadQzoneLive);
+      $("#qzoneRefreshBtn").addEventListener("click", loadPresence);
+      $("#qzoneRows").addEventListener("click", (event) => {
+        const del = event.target.closest("[data-qzone-delete]");
+        if (del) deleteQzone(del.dataset.qzoneDelete);
+      });
+      $("#qzoneLiveRows").addEventListener("click", (event) => {
+        const like = event.target.closest("[data-qzone-like]");
+        if (like) { likeQzone(like.dataset.qzoneLike, like.dataset.qzoneUnikey || ""); return; }
+        const comment = event.target.closest("[data-qzone-comment]");
+        if (comment) { commentQzone(comment.dataset.qzoneComment); return; }
+        const remove = event.target.closest("[data-qzone-comment-delete]");
+        if (remove) { deleteQzoneComment(remove.dataset.qzoneCommentDelete, remove.dataset.qzoneCommentId); }
+      });
+      $("#guildSaveBtn").addEventListener("click", saveGuild);
+      $("#guildRefreshBtn").addEventListener("click", () => loadGuild(true));
+      $("#guildSendBtn").addEventListener("click", sendGuild);
+      $("#guildChannelsBtn").addEventListener("click", loadGuildChannels);
+      $("#guildHistoryBtn").addEventListener("click", loadGuildHistory);
+      $("#restartBtn").addEventListener("click", restartBot);
+      $("#testForm").addEventListener("submit", sendTest);
+      $("#actionLoadBtn").addEventListener("click", loadActions);
+      $("#actionRunBtn").addEventListener("click", runAction);
+      $("#evSaveConfigBtn").addEventListener("click", saveStyleConfig);
+      $("#evRefreshBtn").addEventListener("click", loadStyleEvolution);
+      $("#evReviewBtn").addEventListener("click", runSelfReview);
+      setInterval(tickClock, 1000);
+      tickClock();
+      if (!token) {
+        setLogin("");
+        return;
+      }
+      refresh()
+        .then(showApp)
+        .then(() => {
+          loadActions();
+          loadStyleEvolution();
+        })
+        .catch(() => {
+          token = "";
+          localStorage.removeItem(TOKEN_KEY);
+          setLogin("token 已失效，请重新输入。");
+        });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qq-ai-bot"
+version = "0.1.0"
+description = "A QQ chat bot on NoneBot2, works with any OpenAI-compatible LLM provider"
+requires-python = ">=3.12"
+dependencies = [
+    "nonebot2[fastapi]>=2.5.0,<2.6",
+    "nonebot-adapter-onebot>=2.4.6,<2.5",
+    "websockets>=14,<18",
+    "httpx>=0.28,<0.29",
+    "aiosqlite>=0.22,<0.23",
+    "pydantic>=2.12,<3",
+    "pydantic-settings>=2.6,<3",
+    "PyYAML>=6.0,<7",
+    "packaging>=24,<27",
+    "python-dotenv>=1.0,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+    "ruff>=0.8",
+]
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "ASYNC"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# NoneBot's documented dependency-injection idiom is a call in the default.
+"src/plugins/chat.py" = ["B008"]
+# This dev harness intentionally starts a subprocess from async main.
+"scripts/e2e_smoke.py" = ["ASYNC220"]

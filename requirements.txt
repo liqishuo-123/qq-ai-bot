@@ -1,0 +1,15 @@
+nonebot2[fastapi]>=2.5.0,<2.6
+nonebot-adapter-onebot>=2.4.6,<2.5
+websockets>=14,<18
+httpx>=0.28,<0.29
+aiosqlite>=0.22,<0.23
+pydantic>=2.12,<3
+pydantic-settings>=2.6,<3
+PyYAML>=6.0,<7
+packaging>=24,<27
+python-dotenv>=1.0,<2
+
+# dev
+pytest>=8.3
+pytest-asyncio>=0.25
+ruff>=0.8

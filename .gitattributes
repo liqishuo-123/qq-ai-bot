@@ -1,0 +1,30 @@
+# 换行符与编码规则
+#
+# 关于 .bat 的两件事，都会直接导致别人下载后跑不起来：
+#   1. 必须是 CRLF。存成 LF 时 goto 可能失效、首行变成 "?@echo off"。
+#   2. 本项目的 .bat 用 GBK 编码保存（cmd 的原生编码）。原因是 cmd 在
+#      chcp 65001（UTF-8）下解析批处理有缺陷：一行字节累计到缓冲边界时，
+#      下一行的后半截会被当成命令执行，报 "xxx is not recognized"。
+#      实测同样的内容 GBK/936 完整输出，UTF-8/65001 必然丢一行。
+#      代价是 GitHub 网页直接查看 .bat 会显示乱码，下载运行不受影响。
+#
+# 因此 .bat 用 -text 原样存储，不让 git 碰它的任何字节。
+
+* text=auto eol=lf
+
+*.bat -text
+*.cmd -text
+*.ps1 -text
+
+# Unix shell：强制 LF
+*.sh  text eol=lf
+
+# 二进制文件：不做任何转换
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.zip  binary
+*.db   binary

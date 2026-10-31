@@ -1,0 +1,51 @@
+# ---- 环境与缓存 ----
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+
+# ---- 密钥与本地配置（绝不提交）----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- 运行时数据（不要上传）----
+data/*.db
+data/*.db-*
+data/plugin_state.json
+data/stickers/*
+!data/stickers/.gitkeep
+data/persona_history/*
+!data/persona_history/.gitkeep
+data/brain/notes/*
+!data/brain/notes/.gitkeep
+data/brain/profile/*
+!data/brain/profile/.gitkeep
+data/brain/qzone/*
+!data/brain/qzone/.gitkeep
+data/e2e-*/
+logs/
+*.log
+*.zip
+
+# ---- 系统文件 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# pytest 临时目录
+pytest-of-*/
+
+# 一键启动的本地记录
+napcat_path.txt
+.env.bak-*
+*.json.bak-*

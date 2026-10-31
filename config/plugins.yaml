@@ -1,0 +1,31 @@
+# 可选插件白名单。
+# 核心聊天不依赖这里的任何插件；加载失败只会把该插件标记为 disabled，不会拖垮主程序。
+# 安装示例：
+#   .\.venv\Scripts\python.exe -m pip install nonebot-plugin-localstore
+# 然后把 enabled 改成 true，重启 Bot。
+plugins:
+  - name: localstore
+    module: nonebot_plugin_localstore
+    dist: nonebot-plugin-localstore
+    enabled: false
+    optional: true
+    requires_python: ">=3.9"
+    requires_nonebot: ">=2.0"
+
+  - name: apscheduler
+    module: nonebot_plugin_apscheduler
+    dist: nonebot-plugin-apscheduler
+    enabled: false
+    optional: true
+    requires_python: ">=3.9"
+    requires_nonebot: ">=2.0"
+
+  # 这是一个 /ds 命令式问答插件，不是自动群聊核心。
+  # 如果要用，先安装，并确认它不会和本项目自己的命令冲突。
+  - name: deepseek
+    module: nonebot_plugin_deepseek
+    dist: nonebot-plugin-deepseek
+    enabled: false
+    optional: true
+    requires_python: ">=3.12"
+    requires_nonebot: ">=2.4.1"
